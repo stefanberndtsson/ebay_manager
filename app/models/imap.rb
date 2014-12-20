@@ -5,6 +5,10 @@ class Gmail
 end
 
 class Imap
+  LABEL_UNPARSED="EbayManager/Unparsed"
+  LABEL_PARSED="EbayManager/Parsed"
+  LABEL_UNKNOWN="EbayManager/Unknown"
+
   class << self
     def connection
       @@gmail ||= nil
@@ -25,6 +29,17 @@ class Imap
   end
 
   def self.emails_in_label(label)
-      connection.in_label(label).emails
+    connection.in_label(label).emails
+  end
+
+  def self.fetch_unparsed_messages
+    emails_in_label(LABEL_UNPARSED).each do |message|
+      parse_message(message)
+      return
+    end
+  end
+
+  def self.parse_message(message)
+    EbayMessage.parse_raw_message(message)
   end
 end
