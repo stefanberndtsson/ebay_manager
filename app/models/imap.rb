@@ -33,9 +33,11 @@ class Imap
   end
 
   def self.fetch_unparsed_messages
+    cnt = 0
     emails_in_label(LABEL_UNPARSED).each do |message|
       parse_message(message)
-      return
+      cnt += 1
+      return if cnt > 20
     end
   end
 
