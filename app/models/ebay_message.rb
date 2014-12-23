@@ -23,19 +23,26 @@ class EbayMessage < ActiveRecord::Base
 
   def self.extract_items(message)
     plains = plain_text_part(message)
-    return [] if plains.blank?
     items = []
-    plains.each do |plain| 
-      plain.body.to_s.gsub(/Item # : (\d+)/m) do |x|
-        item_id = $1
-        item = Item.find_by_ebay_id(item_id)
-        if !item
-          item = Item.create(ebay_id: item_id)
+    if !plains.blank?
+      plains.each do |plain| 
+        plain.body.to_s.gsub(/Item (Id|# ): (\d+)/m) do |x|
+          items << add_item($2)
         end
-        items << item
+        next if !items.blank?
       end
+    else
+      pp ["other-types", message.parts.map(&:content_type)]
     end
     items
+  end
+
+  def self.add_item(item_id)
+    item = Item.find_by_ebay_id(item_id)
+    if !item
+      item = Item.create(ebay_id: item_id)
+    end
+    item
   end
 
   def self.plain_text_part(message)

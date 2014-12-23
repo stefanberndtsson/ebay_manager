@@ -37,7 +37,7 @@ class Imap
     emails_in_label(LABEL_UNPARSED).each do |message|
       parse_message(message)
       cnt += 1
-      return if cnt > 20
+      return if cnt > 150
     end
   end
 
