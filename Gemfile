@@ -43,3 +43,4 @@ group :development, :test do
 end
 
 gem "ruby-gmail", require: 'gmail'
+gem "unicode"

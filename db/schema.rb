@@ -11,9 +11,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20141221181557) do
+ActiveRecord::Schema.define(version: 20141223185228) do
 
-  create_table "ebay_messages", force: true do |t|
+  create_table "ebay_mails", force: true do |t|
     t.text     "subject"
     t.text     "from"
     t.text     "to"
@@ -26,7 +26,7 @@ ActiveRecord::Schema.define(version: 20141221181557) do
     t.text     "raw"
   end
 
-  create_table "item_messages", force: true do |t|
+  create_table "item_mails", force: true do |t|
     t.integer  "item_id"
     t.integer  "ebay_message_id"
     t.datetime "created_at"

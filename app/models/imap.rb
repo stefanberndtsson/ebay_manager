@@ -32,16 +32,26 @@ class Imap
     connection.in_label(label).emails
   end
 
-  def self.fetch_unparsed_messages
+  def self.fetch_unparsed_mails
     cnt = 0
-    emails_in_label(LABEL_UNPARSED).each do |message|
-      parse_message(message)
+    emails_in_label(LABEL_UNPARSED).each do |mail|
+      parse_mail(mail)
       cnt += 1
       return if cnt > 150
     end
   end
 
-  def self.parse_message(message)
-    EbayMessage.parse_raw_message(message)
+  def self.download_all_unparsed_mails
+    emails_in_label(LABEL_UNPARSED).each do |mail| 
+      decomposed = Unicode.nfkd(mail.subject).gsub(/[^\u0000-\u00ff]/, "")
+      puts "#{mail.uid}: #{decomposed}"
+      File.open("/var/tmp/ebay-mails/#{mail.message_id}", "wb") do |file| 
+        file.write(mail.raw_source)
+      end
+    end
+  end
+
+  def self.parse_mail(mail)
+    EbayMail.parse_raw_mail(mail)
   end
 end
