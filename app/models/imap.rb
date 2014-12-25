@@ -20,6 +20,10 @@ class Imap
     end
   end
 
+  def self.gmail_message_by_msgid(msgid, label = LABEL_UNPARSED)
+    in_label(label).emails(:all, {gm: 'rfc822msgid:'+msgid}).first
+  end
+
   def self.labels
     connection.labels
   end

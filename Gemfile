@@ -42,5 +42,5 @@ group :development, :test do
   gem 'rspec-rails', '~> 3.0'
 end
 
-gem "ruby-gmail", require: 'gmail'
+gem "ruby-gmail", git: 'https://github.com/dcparker/ruby-gmail.git', branch: 'master', require: 'gmail'
 gem "unicode"
