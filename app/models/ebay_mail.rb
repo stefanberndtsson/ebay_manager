@@ -2,6 +2,10 @@ class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
+  def self.parse_mail()
+    
+  end
+
   def self.parse_raw_mail(mail)
     msg = EbayMail.find_by_message_id(mail.message_id)
     items = extract_items(mail)
@@ -15,9 +19,9 @@ class EbayMail < ActiveRecord::Base
       return
     end
     parse_mail(items, mail.mail_id, mail.subject,
-                  mail.from, mail.to,
-                  mail.header_fields, mail.body,
-                  mail.raw_source, msg)
+               mail.from, mail.to,
+               mail.header_fields, mail.body,
+               mail.raw_source, msg)
     mail.move_to(Imap::LABEL_PARSED)
   end
 
@@ -49,10 +53,10 @@ class EbayMail < ActiveRecord::Base
     mail.parts.select { |x| x.content_type[/^text\/plain/] }
   end
 
-  def self.parse_mail(items, mail_id, subject, from, to, headers, body, raw, msg = nil)
+  def self.xparse_mail(items, mail_id, subject, from, to, headers, body, raw, msg = nil)
     items.each do |item|
       if !msg
-        msg = Eailsage.create(subject: subject, from: from.to_json, to: to.to_json, mail_id: mail_id, 
+        msg = EbayMail.create(subject: subject, from: from.to_json, to: to.to_json, mail_id: mail_id, 
                                  headers: headers.to_json, body: body.to_json, raw: raw)
       end
       item.item_mails.create(ebay_mail_id: msg.id)

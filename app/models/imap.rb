@@ -53,18 +53,28 @@ class Imap
     connection.in_label(label).emails
   end
 
-  def self.fetch_unparsed_mails(maxcnt = nil)
+  def self.load_mail_from_file(filename)
+    File.open(filename, "rb") do |mail|
+      return Mail.new(mail.read)
+    end
+  end
+
+  def self.fetch_unparsed_mails(maxcnt = nil, return_unparsed = false)
     if Rails.env == "development"
       cnt = 0
+      mails = [] if return_unparsed
       Dir.open("/var/tmp/ebay-mails").each do |file|
         next unless File.file?("/var/tmp/ebay-mails/#{file}")
-        return if maxcnt && cnt >= maxcnt
-        File.open("/var/tmp/ebay-mails/#{file}", "rb") do |mail| 
-          mail_message = Mail.new(mail.read)
+        break if maxcnt && cnt >= maxcnt
+        mail_message = load_mail_from_file("/var/tmp/ebay-mails/#{file}")
+        if return_unparsed
+          mails << mail_message 
+        else
           parse_mail(mail_message)
         end
         cnt += 1
       end
+      return mails if return_unparsed
     else
       cnt = 0
       emails_in_label(LABEL_UNPARSED).each do |mail|
