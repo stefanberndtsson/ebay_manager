@@ -1,9 +1,9 @@
-class EbayMessage < ActiveRecord::Base
+class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
   def self.parse_raw_mail(mail)
-    msg = EbayMail.find_by_mail_id(mail.mail_id)
+    msg = EbayMail.find_by_message_id(mail.message_id)
     items = extract_items(mail)
     item_ids = items.map(&:id)
     if msg

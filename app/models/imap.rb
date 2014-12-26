@@ -4,6 +4,12 @@ class Gmail
   end
 end
 
+class Mail::Message
+  def move_to(label)
+    Imap.set_label(label, self)
+  end
+end
+
 class Imap
   LABEL_UNPARSED="EbayManager/Unparsed"
   LABEL_PARSED="EbayManager/Parsed"
@@ -20,6 +26,17 @@ class Imap
     end
   end
 
+  def self.set_label(label, message)
+    if Rails.env == 'production'
+      msg = gmail_message_by_msgid(message.message_id)
+      if msg
+        msg.label(label)
+      end
+    else
+      puts "Would have set label: #{label}"
+    end
+  end
+  
   def self.gmail_message_by_msgid(msgid, label = LABEL_UNPARSED)
     in_label(label).emails(:all, {gm: 'rfc822msgid:'+msgid}).first
   end
@@ -36,12 +53,25 @@ class Imap
     connection.in_label(label).emails
   end
 
-  def self.fetch_unparsed_mails
-    cnt = 0
-    emails_in_label(LABEL_UNPARSED).each do |mail|
-      parse_mail(mail)
-      cnt += 1
-      return if cnt > 150
+  def self.fetch_unparsed_mails(maxcnt = nil)
+    if Rails.env == "development"
+      cnt = 0
+      Dir.open("/var/tmp/ebay-mails").each do |file|
+        next unless File.file?("/var/tmp/ebay-mails/#{file}")
+        return if maxcnt && cnt >= maxcnt
+        File.open("/var/tmp/ebay-mails/#{file}", "rb") do |mail| 
+          mail_message = Mail.new(mail.read)
+          parse_mail(mail_message)
+        end
+        cnt += 1
+      end
+    else
+      cnt = 0
+      emails_in_label(LABEL_UNPARSED).each do |mail|
+        parse_mail(mail)
+        cnt += 1
+        return if cnt > 150
+      end
     end
   end
 
