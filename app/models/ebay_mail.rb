@@ -2,8 +2,52 @@ class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
-  def self.parse_mail()
-    
+  def self.parse_mail(mail)
+    data = {}
+    if parse_paypal(mail, data)
+      puts "Parsed data:"
+      pp data
+    else
+      pp mail.from.join(" ")
+      puts "DEBUG: No parser yet..."
+    end
+  end
+
+  def self.parse_paypal(mail, data)
+    return false if !mail.from.join(" ")[/service\@paypal\.se/]
+    html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
+    return false if !html_part
+    doc = Nokogiri::HTML(html_part.decode_body)
+
+    # Find item id
+    ebay_link = doc.search("//a[contains(@href, 'ebay.com')]")
+    return false if ebay_link.blank?
+    return false if ebay_link.attr('href').blank?
+    ebay_url = URI.parse(ebay_link.attr('href'))
+    params = CGI.parse(ebay_url.query)
+    return false if params["item"].blank?
+    data[:item] = params["item"]
+
+
+    # Find quantity
+    quantity_element = doc.search("//a[contains(@href, 'ebay.com')]/../following-sibling::td/following-sibling::td").first
+    return false if quantity_element.blank?
+    data[:quantity] = quantity_element.text
+
+
+    # Find cost
+    cost_element = doc.search("//td[contains(text(), 'From amount')]/following-sibling::td").first
+    return false if cost_element.blank?
+    if cost_element.text[/^([\d,]+) SEK/]
+      cost = $1
+      cost = cost.gsub(/,/,'.').to_f
+      data[:cost] = cost
+    else
+      puts "ERROR: Cost not matching pattern: #{cost_element.text}"
+      return false
+    end
+
+    data
   end
 
   def self.parse_raw_mail(mail)

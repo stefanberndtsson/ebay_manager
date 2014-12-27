@@ -44,3 +44,4 @@ end
 
 gem "ruby-gmail", git: 'https://github.com/dcparker/ruby-gmail.git', branch: 'master', require: 'gmail'
 gem "unicode"
+gem "nokogiri"
