@@ -1,16 +1,18 @@
+# -*- coding: utf-8 -*-
 class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
   def self.parse_mail(mail)
-    data = {}
+    data = EbayMailData.new
     if parse_paypal(mail, data)
-      puts "Parsed data:"
-      pp data
+      data.message_id = mail.message_id
+      data.status = :parsed
     else
-      pp mail.from.join(" ")
-      puts "DEBUG: No parser yet..."
+      data.subject = mail.subject
+      data.status = :unparsable
     end
+    data
   end
 
   def self.parse_paypal(mail, data)
@@ -22,32 +24,77 @@ class EbayMail < ActiveRecord::Base
     # Find item id
     ebay_link = doc.search("//a[contains(@href, 'ebay.com')]")
     return false if ebay_link.blank?
-    return false if ebay_link.attr('href').blank?
-    ebay_url = URI.parse(ebay_link.attr('href'))
-    params = CGI.parse(ebay_url.query)
-    return false if params["item"].blank?
-    data[:item] = params["item"]
+    return false if ebay_link.map { |x| x.attr('href') }.blank?
+    items = {}
+    ebay_link.each do |link| 
+      ebay_url = URI.parse(link.attr('href'))
+      params = CGI.parse(ebay_url.query)
+      next if params["item"].blank?
 
+      quantity_element = link.search("../following-sibling::td/following-sibling::td").first
+      if quantity_element.blank?
+        puts "ERROR: Quantity missing"
+        return false 
+      end
 
-    # Find quantity
-    quantity_element = doc.search("//a[contains(@href, 'ebay.com')]/../following-sibling::td/following-sibling::td").first
-    return false if quantity_element.blank?
-    data[:quantity] = quantity_element.text
+      cost_element = link.search("../following-sibling::td/following-sibling::td/following-sibling::td").first
+      cost = 0
+      cost_currency = nil
+      if cost_element.text[/^[\$\€]?([\d, ]+) ([A-Z]+)/]
+        cost = $1
+        cost_currency = $2
+        cost = cost.tr(', ','._').to_f
+      else
+        puts "ERROR: Cost not matching pattern: #{cost_element.text}"
+        return false
+      end
 
+      name = link.text
+      quantity = quantity_element.text.to_i
+      quantity *= name_quantity(name)
 
+      items[params["item"].first] = { 
+        name: link.text,
+        quantity: quantity,
+        tmp_cost: cost,
+        tmp_cost_currency: cost_currency,
+        payment: true
+      }
+    end
+    return false if items.keys.blank?
+    data.items.merge!(items)
+    
     # Find cost
     cost_element = doc.search("//td[contains(text(), 'From amount')]/following-sibling::td").first
     return false if cost_element.blank?
-    if cost_element.text[/^([\d,]+) SEK/]
-      cost = $1
-      cost = cost.gsub(/,/,'.').to_f
-      data[:cost] = cost
+    total_cost = 0
+    if cost_element.text[/^([\d, ]+) SEK/]
+      total_cost = $1
+      total_cost = total_cost.tr(', ','._').to_f
     else
       puts "ERROR: Cost not matching pattern: #{cost_element.text}"
       return false
     end
+    
+    currencies = data.items.map { |k,v| data.items[k][:tmp_cost_currency] }.uniq
+    return false if currencies.size != 1
+    
+    total_sub_cost = data.items.map { |k,v| data.items[k][:tmp_cost] }.inject(&:+)
+    
+    data.items.map do |k,v|
+      data.items[k][:cost] = total_cost * data.items[k][:tmp_cost]/total_sub_cost
+      data.items[k].delete(:tmp_cost)
+      data.items[k].delete(:tmp_cost_currency)
+    end
 
     data
+  end
+
+  def self.name_quantity(name)
+    if name[/\b(\d+) ?pcs?\b/i]
+      return $1.to_i
+    end
+    return 1
   end
 
   def self.parse_raw_mail(mail)
@@ -63,9 +110,9 @@ class EbayMail < ActiveRecord::Base
       return
     end
     parse_mail(items, mail.mail_id, mail.subject,
-               mail.from, mail.to,
-               mail.header_fields, mail.body,
-               mail.raw_source, msg)
+      mail.from, mail.to,
+      mail.header_fields, mail.body,
+      mail.raw_source, msg)
     mail.move_to(Imap::LABEL_PARSED)
   end
 
@@ -101,7 +148,7 @@ class EbayMail < ActiveRecord::Base
     items.each do |item|
       if !msg
         msg = EbayMail.create(subject: subject, from: from.to_json, to: to.to_json, mail_id: mail_id, 
-                                 headers: headers.to_json, body: body.to_json, raw: raw)
+          headers: headers.to_json, body: body.to_json, raw: raw)
       end
       item.item_mails.create(ebay_mail_id: msg.id)
     end

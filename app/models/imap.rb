@@ -63,6 +63,7 @@ class Imap
     if Rails.env == "development"
       cnt = 0
       mails = [] if return_unparsed
+      result = []
       Dir.open("/var/tmp/ebay-mails").each do |file|
         next unless File.file?("/var/tmp/ebay-mails/#{file}")
         break if maxcnt && cnt >= maxcnt
@@ -70,11 +71,12 @@ class Imap
         if return_unparsed
           mails << mail_message 
         else
-          parse_mail(mail_message)
+          result << EbayMail.parse_mail(mail_message)
         end
         cnt += 1
       end
       return mails if return_unparsed
+      return result
     else
       cnt = 0
       emails_in_label(LABEL_UNPARSED).each do |mail|
@@ -93,9 +95,5 @@ class Imap
         file.write(mail.raw_source)
       end
     end
-  end
-
-  def self.parse_mail(mail)
-    EbayMail.parse_raw_mail(mail)
   end
 end
