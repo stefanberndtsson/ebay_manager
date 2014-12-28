@@ -4,11 +4,11 @@ class EbayMail < ActiveRecord::Base
   has_many :items, :through => :item_mails
 
   def self.parse_mail(mail)
-    data = EbayMailData.new
-    if parse_paypal(mail, data)
-      data.message_id = mail.message_id
-      data.status = :parsed
-    else
+    data = EbayMailData.new(message_id: mail.message_id)
+    parse_paypal(mail, data)
+    parse_order_html(mail, data)
+    parse_order_text(mail, data)
+    if data.status != :parsed
       data.subject = mail.subject
       data.status = :unparsable
     end
@@ -16,6 +16,7 @@ class EbayMail < ActiveRecord::Base
   end
 
   def self.parse_paypal(mail, data)
+    return false if data.status == :parsed
     return false if !mail.from.join(" ")[/service\@paypal\.se/]
     html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
     return false if !html_part
@@ -49,16 +50,16 @@ class EbayMail < ActiveRecord::Base
         return false
       end
 
-      name = link.text
+      name = link.text.strip
       quantity = quantity_element.text.to_i
       quantity *= name_quantity(name)
 
       items[params["item"].first] = { 
-        name: link.text,
+        name: name,
         quantity: quantity,
         tmp_cost: cost,
         tmp_cost_currency: cost_currency,
-        payment: true
+        payment: mail.date
       }
     end
     return false if items.keys.blank?
@@ -87,6 +88,7 @@ class EbayMail < ActiveRecord::Base
       data.items[k].delete(:tmp_cost_currency)
     end
 
+    data.status = :parsed
     data
   end
 
@@ -95,6 +97,75 @@ class EbayMail < ActiveRecord::Base
       return $1.to_i
     end
     return 1
+  end
+
+  def self.parse_order_html(mail, data)
+    return false if data.status == :parsed
+    return false if !mail.from.join(" ")[/ebay\@ebay.com/]
+    return false unless mail.subject[/^ORDER: /] || mail.subject[/Confirmation of your order/]
+
+    html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
+    return false if !html_part
+    doc = Nokogiri::HTML(html_part.decode_body)
+
+    # File.open("/tmp/order2.html", "wb") { |f| f.puts doc } 
+
+    items = {}
+    ebay_link = doc.search('h2.product-name a')
+    item_id_key = "itemId"
+    if ebay_link.blank?
+      ebay_link = doc.search('tr td[colspan="2"] > a')
+      item_id_key = "item"
+    end
+    return false if ebay_link.blank?
+
+    ebay_link.each do |link|
+      ebay_url = URI.parse(link.attr('href'))
+      params = CGI.parse(ebay_url.query)
+      return false if !params["loc"]
+      ebay_url = URI.parse(params["loc"].first)
+      params = CGI.parse(ebay_url.query)
+      return false if !params[item_id_key]
+      items[params[item_id_key].first] = {
+        name: link.text.strip,
+        order: mail.date
+      }
+    end
+    data.items.merge!(items)
+    
+    data.status = :parsed
+    data
+  end
+
+  def self.parse_order_text(mail, data)
+    return false if data.status == :parsed
+    return false if !mail.from.join(" ")[/ebay\@ebay.com/]
+    return false unless mail.subject[/Confirmation of your order/]
+    html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
+    return false if html_part
+    
+    plain_part = mail.parts.find { |m| m.content_type[/^text\/plain/] }
+    mail_text = plain_part.decode_body
+
+    items = {}
+
+    mail_text.scan(/Item name\s+(.*)\nItem URL:\s+(.*)/).each do |link| 
+      name = link[0]
+      url = link[1]
+      ebay_url = URI.parse(url)
+      params = CGI.parse(ebay_url.query)
+      ebay_url = URI.parse(params["loc"].first)
+      params = CGI.parse(ebay_url.query)
+      
+      items[params["item"].first] = {
+        name: name,
+        order: mail.date
+      }
+    end
+
+    data.items.merge!(items)
+    data.status = :parsed
+    data
   end
 
   def self.parse_raw_mail(mail)
