@@ -59,7 +59,7 @@ class EbayMail < ActiveRecord::Base
         quantity: quantity,
         tmp_cost: cost,
         tmp_cost_currency: cost_currency,
-        payment: mail.date
+        payment_at: mail.date
       }
     end
     return false if items.keys.blank?
@@ -128,7 +128,7 @@ class EbayMail < ActiveRecord::Base
       return false if !params[item_id_key]
       items[params[item_id_key].first] = {
         name: link.text.strip,
-        order: mail.date
+        ordered_at: mail.date
       }
     end
     data.items.merge!(items)
@@ -159,7 +159,7 @@ class EbayMail < ActiveRecord::Base
       
       items[params["item"].first] = {
         name: name,
-        order: mail.date
+        ordered_at: mail.date
       }
     end
 
