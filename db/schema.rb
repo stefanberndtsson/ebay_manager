@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20141223185228) do
+ActiveRecord::Schema.define(version: 20141230224413) do
 
   create_table "ebay_mails", force: true do |t|
     t.text     "subject"
@@ -43,6 +43,9 @@ ActiveRecord::Schema.define(version: 20141223185228) do
     t.text     "tracking_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "quantity"
+    t.datetime "payment_at"
+    t.datetime "ordered_at"
   end
 
 end
