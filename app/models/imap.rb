@@ -15,6 +15,8 @@ class Imap
   LABEL_PARSED="EbayManager/Parsed"
   LABEL_UNKNOWN="EbayManager/Unknown"
 
+  DEVEL_DIR="/var/tmp/ebay-mails"
+
   class << self
     def connection
       @@gmail ||= nil
@@ -64,10 +66,10 @@ class Imap
       cnt = 0
       mails = [] if return_unparsed
       result = []
-      Dir.open("/var/tmp/ebay-mails").each do |file|
-        next unless File.file?("/var/tmp/ebay-mails/#{file}")
+      Dir.open("#{DEVEL_DIR}").each do |file|
+        next unless File.file?("#{DEVEL_DIR}/#{file}")
         break if maxcnt && cnt >= maxcnt
-        mail_message = load_mail_from_file("/var/tmp/ebay-mails/#{file}")
+        mail_message = load_mail_from_file("#{DEVEL_DIR}/#{file}")
         if return_unparsed
           mails << mail_message 
         else
@@ -91,7 +93,7 @@ class Imap
     emails_in_label(LABEL_UNPARSED).each do |mail| 
       decomposed = Unicode.nfkd(mail.subject).gsub(/[^\u0000-\u00ff]/, "")
       puts "#{mail.uid}: #{decomposed}"
-      File.open("/var/tmp/ebay-mails/#{mail.message_id}", "wb") do |file| 
+      File.open("#{DEVEL_DIR}/#{mail.message_id}", "wb") do |file| 
         file.write(mail.raw_source)
       end
     end
