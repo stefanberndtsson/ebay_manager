@@ -178,6 +178,7 @@ class EbayMail < ActiveRecord::Base
         item = Item.create(items[item_id].merge({ebay_id: item_id}))
       else
         puts "DEBUG: Updating existing item for #{item_id}"
+        items[item_id].delete_if { |k,v| v.nil? }
         item.update_attributes(items[item_id])
       end
     end
