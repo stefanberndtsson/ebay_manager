@@ -11,4 +11,7 @@ if File.exist?(token_file)
       Rails.application.secrets.google_password = app["password"]
     end
   end
+  if Rails.env == "development" && tokens["devel"] && tokens["devel"]["local_data_dir"]
+    Rails.application.secrets.local_data_dir = tokens["devel"]["local_data_dir"]
+  end
 end

@@ -12,7 +12,8 @@ class EbayMail < ActiveRecord::Base
       data.subject = mail.subject
       data.status = :unparsable
     end
-    data
+
+    create_or_update_item(data) if data.status == :parsed
   end
 
   def self.parse_paypal(mail, data)
@@ -50,12 +51,12 @@ class EbayMail < ActiveRecord::Base
         return false
       end
 
-      name = link.text.strip
+      title = link.text.strip
       quantity = quantity_element.text.to_i
-      quantity *= name_quantity(name)
+      quantity *= title_quantity(title)
 
       items[params["item"].first] = { 
-        name: name,
+        title: title,
         quantity: quantity,
         tmp_cost: cost,
         tmp_cost_currency: cost_currency,
@@ -92,8 +93,8 @@ class EbayMail < ActiveRecord::Base
     data
   end
 
-  def self.name_quantity(name)
-    if name[/\b(\d+) ?pcs?\b/i]
+  def self.title_quantity(title)
+    if title[/\b(\d+) ?pcs?\b/i]
       return $1.to_i
     end
     return 1
@@ -127,7 +128,7 @@ class EbayMail < ActiveRecord::Base
       params = CGI.parse(ebay_url.query)
       return false if !params[item_id_key]
       items[params[item_id_key].first] = {
-        name: link.text.strip,
+        title: link.text.strip,
         ordered_at: mail.date
       }
     end
@@ -150,7 +151,7 @@ class EbayMail < ActiveRecord::Base
     items = {}
 
     mail_text.scan(/Item name\s+(.*)\nItem URL:\s+(.*)/).each do |link| 
-      name = link[0]
+      title = link[0]
       url = link[1]
       ebay_url = URI.parse(url)
       params = CGI.parse(ebay_url.query)
@@ -158,7 +159,7 @@ class EbayMail < ActiveRecord::Base
       params = CGI.parse(ebay_url.query)
       
       items[params["item"].first] = {
-        name: name,
+        title: title,
         ordered_at: mail.date
       }
     end
@@ -166,5 +167,19 @@ class EbayMail < ActiveRecord::Base
     data.items.merge!(items)
     data.status = :parsed
     data
+  end
+
+  def self.create_or_update_item(data)
+    items = data.items
+    items.keys.each do |item_id|
+      item = Item.where(ebay_id: item_id).where("delivered_at IS NULL").first
+      if !item
+        puts "DEBUG: Creating new item for #{item_id}"
+        item = Item.create(items[item_id].merge({ebay_id: item_id}))
+      else
+        puts "DEBUG: Updating existing item for #{item_id}"
+        item.update_attributes(items[item_id])
+      end
+    end
   end
 end
