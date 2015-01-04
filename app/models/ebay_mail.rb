@@ -174,10 +174,8 @@ class EbayMail < ActiveRecord::Base
     items.keys.each do |item_id|
       item = Item.where(ebay_id: item_id).where("delivered_at IS NULL").first
       if !item
-        puts "DEBUG: Creating new item for #{item_id}"
         item = Item.create(items[item_id].merge({ebay_id: item_id}))
       else
-        puts "DEBUG: Updating existing item for #{item_id}"
         items[item_id].delete_if { |k,v| v.nil? }
         item.update_attributes(items[item_id])
       end
