@@ -1,5 +1,5 @@
 class EbayMailData
-  KEYS=[:subject, :name, :items, :status, :message_id]
+  KEYS=[:subject, :items, :status, :message_id]
 
   def initialize(content = {})
     @data = content
