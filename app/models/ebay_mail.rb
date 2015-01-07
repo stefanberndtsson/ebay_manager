@@ -8,12 +8,14 @@ class EbayMail < ActiveRecord::Base
     parse_paypal(mail, data)
     parse_order_html(mail, data)
     parse_order_text(mail, data)
+    parse_shipped_html(mail, data)
     if data.status != :parsed
       data.subject = mail.subject
       data.status = :unparsable
     end
 
     create_or_update_item(data) if data.status == :parsed
+    data.status
   end
 
   def self.parse_paypal(mail, data)
@@ -165,6 +167,41 @@ class EbayMail < ActiveRecord::Base
     end
 
     data.items.merge!(items)
+    data.status = :parsed
+    data
+  end
+
+  def self.parse_shipped_html(mail, data)
+    return false if data.status == :parsed
+    return false if !mail.from.join(" ")[/ebay\@ebay.com/]
+    return false unless mail.subject[/^SHIPPED: /]
+
+    html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
+    return false if !html_part
+    doc = Nokogiri::HTML(html_part.decode_body)
+
+    items = {}
+    ebay_link = doc.search('td.single-product-block td.single-product-cta td.secondary-cta-button a')
+    item_id_key = "itemId"
+#    if ebay_link.blank?
+#      ebay_link = doc.search('tr td[colspan="2"] > a')
+#      item_id_key = "item"
+#    end
+    return false if ebay_link.blank?
+
+    ebay_link.each do |link|
+      ebay_url = URI.parse(link.attr('href'))
+      params = CGI.parse(ebay_url.query)
+      return false if !params["loc"]
+      ebay_url = URI.parse(params["loc"].first)
+      params = CGI.parse(ebay_url.query)
+      return false if !params[item_id_key]
+      items[params[item_id_key].first] = {
+        shipped_at: mail.date
+      }
+    end
+    data.items.merge!(items)
+    
     data.status = :parsed
     data
   end
