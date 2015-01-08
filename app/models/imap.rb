@@ -76,6 +76,7 @@ class Imap
         cnt += 1
       end
       return mails if return_unparsed
+      Item.set_dates_from_known_date
       return result
     else
       cnt = 0
@@ -84,6 +85,7 @@ class Imap
         cnt += 1
         return if cnt > 150
       end
+      Item.set_dates_from_known_date
     end
   end
 
