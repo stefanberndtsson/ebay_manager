@@ -9,5 +9,12 @@ class Item < ActiveRecord::Base
     Item.where("ordered_at IS NOT NULL").where(payment_at: nil).each do |item| 
       item.update_attribute(:payment_at, item.ordered_at)
     end
+    Item.where(delivered_at: nil).each do |item|
+      if item.shipped_at
+        item.update_attribute(:delivered_at, item.shipped_at + 3.weeks)
+      else
+        item.update_attribute(:delivered_at, item.ordered_at + 4.weeks)
+      end
+    end
   end
 end

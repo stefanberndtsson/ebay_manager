@@ -85,7 +85,6 @@ class Imap
         cnt += 1
         return if cnt > 150
       end
-      Item.set_dates_from_known_date
     end
   end
 
@@ -96,6 +95,27 @@ class Imap
       File.open("#{Rails.application.secrets.local_data_dir}/#{mail.message_id}", "wb") do |file| 
         file.write(mail.raw_source)
       end
+    end
+  end
+
+  def self.download_delivered_labels
+    message_deliveries = {}
+    labels.each do |label| 
+      next unless label[/Z\/Delivered\/\d+-\d+-\d+/]
+      puts label
+      date = label[/Z\/Delivered\/(\d+-\d+-\d+)/, 1]
+      cnt = 0
+      emails_in_label(label).each do |mail| 
+        if message_deliveries[mail.message_id]
+          puts "Duplicate delivery dates for #{mail.message_id}"
+        end
+        message_deliveries[mail.message_id] = date
+        cnt += 1
+      end
+      puts "Message count: #{cnt}"
+    end
+    File.open("#{Rails.application.secrets.local_data_dir}/../delivery_dates.json", "wb") do |file| 
+      file.write(message_deliveries.to_json)
     end
   end
 end
