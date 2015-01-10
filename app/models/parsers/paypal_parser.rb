@@ -5,7 +5,7 @@ class PaypalParser
     data.status == :parsed ? data : false
   end
 
-  def self.is_paypal_address?(mail)
+  def self.is_paypal_sender?(mail)
     return true if mail.from.join(" ")[/service\@paypal\.se/]
     return true if mail.from.join(" ")[/service\@paypal\.com/]
     return true if mail.from.join(" ")[/service\@intl\.paypal\.com/]
@@ -14,7 +14,7 @@ class PaypalParser
   
   def self.parse_paypal(mail, data)
     return false if data.status == :parsed
-    return false if !is_paypal_address?(mail)
+    return false if !is_paypal_sender?(mail)
     html_part = mail.parts.find { |m| m.content_type[/^text\/html/] }
     return false if !html_part
     body = html_part.decode_body

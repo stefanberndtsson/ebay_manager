@@ -4,7 +4,7 @@ class DiscardParser
   end
   
   def self.discard_unwanted(mail)
-    return true if !mail.from.join(" ")[/service\@paypal\.se/] && !mail.from.join(" ")[/ebay\@ebay.com/]
+    return true if !PaypalParser.is_paypal_sender?(mail) && !mail.from.join(" ")[/ebay\@ebay.com/]
     return true if mail.subject[/^ENDING:/]
     return true if mail.subject[/^Goods delivery notification/]
     return true if mail.subject[/^New items that match: /]
