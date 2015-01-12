@@ -17,4 +17,8 @@ class Item < ActiveRecord::Base
       end
     end
   end
+
+  def mark_as_delivered
+    update_attribute(:delivered_at, Time.now)
+  end
 end
