@@ -3,6 +3,14 @@ class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
+  def add_label(label)
+    # TODO: Add label for current message_id
+  end
+
+  def remove_label(label)
+    # TODO: Remove label for current message_id
+  end
+
   def self.parse_mail(mail)
     data = EbayMailData.new(message_id: mail.message_id)
     PaypalParser.parse(mail, data)

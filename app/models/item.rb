@@ -21,4 +21,16 @@ class Item < ActiveRecord::Base
   def mark_as_delivered
     update_attribute(:delivered_at, Time.now)
   end
+
+  def set_label_for_all_mails(label)
+    ebay_mails.each do |ebay_mail| 
+      ebay_mail.set_label(label)
+    end
+  end
+
+  def remove_label_for_all_mails(label)
+    ebay_mails.each do |ebay_mail| 
+      ebay_mail.remove_label(label)
+    end
+  end
 end
