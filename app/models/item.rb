@@ -18,8 +18,14 @@ class Item < ActiveRecord::Base
     end
   end
 
+  def delivered_label_name(timestamp)
+    timestamp.strftime("Z/Delivered/%Y-%m-%d")
+  end
+
   def mark_as_delivered
-    update_attribute(:delivered_at, Time.now)
+    timestamp = Time.now
+    update_attribute(:delivered_at, timestamp)
+    set_label_for_all_mails(delivered_label_name(timestamp))
   end
 
   def set_label_for_all_mails(label)
