@@ -12,7 +12,7 @@ class EbayMail < ActiveRecord::Base
   end
 
   def self.parse_mail(mail)
-    data = EbayMailData.new(message_id: mail.message_id)
+    data = EbayMailData.new
     PaypalParser.parse(mail, data)
     OrderParser.parse(mail, data)
     ShippedParser.parse(mail, data)
@@ -32,7 +32,7 @@ class EbayMail < ActiveRecord::Base
     end
 
     if data.status != :parsed && data.status != :discarded
-      data.subject = mail.subject
+      pp mail.subject
       pp data
       raise Unparsable
       data.status = :unparsable
