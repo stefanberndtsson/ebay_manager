@@ -2,6 +2,11 @@ class Gmail
   def raw_imap
     @imap
   end
+
+  def devel_connect
+    @imap.disconnect
+    @imap = Net::IMAP.new('localhost', 143)
+  end
 end
 
 class Mail::Message
@@ -22,6 +27,7 @@ class Imap
       
       puts "Connecting"
       @@gmail = Gmail.new(Rails.application.secrets.google_email, Rails.application.secrets.google_password)
+      @@gmail.devel_connect if Rails.env != "production"
       @@gmail
     end
   end
