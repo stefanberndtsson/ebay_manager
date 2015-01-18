@@ -65,32 +65,41 @@ class Imap
     end
   end
 
+  def self.fetch_unparsed_from_files(maxcnt = nil, return_unparsed = false)
+    cnt = 0
+    mails = [] if return_unparsed
+    result = []
+    Dir.open("#{Rails.application.secrets.local_data_dir}").each do |file|
+      next unless File.file?("#{Rails.application.secrets.local_data_dir}/#{file}")
+      break if maxcnt && cnt >= maxcnt
+      mail_message = load_mail_from_file("#{Rails.application.secrets.local_data_dir}/#{file}")
+      if return_unparsed
+        mails << mail_message 
+      else
+        result << EbayMail.parse_mail(mail_message)
+      end
+      cnt += 1
+    end
+    return mails if return_unparsed
+    Item.set_dates_from_known_date
+    return result
+  end
+
+  def self.fetch_unparsed_from_server(maxcnt = nil, return_unparsed = false)
+    cnt = 0
+    emails_in_label(LABEL_UNPARSED).each do |mail|
+      pp mail
+      EbayMail.parse_mail(mail)
+      cnt += 1
+      return if maxcnt && cnt > maxcnt
+    end
+  end
+
   def self.fetch_unparsed_mails(maxcnt = nil, return_unparsed = false)
     if Rails.env == "development"
-      cnt = 0
-      mails = [] if return_unparsed
-      result = []
-      Dir.open("#{Rails.application.secrets.local_data_dir}").each do |file|
-        next unless File.file?("#{Rails.application.secrets.local_data_dir}/#{file}")
-        break if maxcnt && cnt >= maxcnt
-        mail_message = load_mail_from_file("#{Rails.application.secrets.local_data_dir}/#{file}")
-        if return_unparsed
-          mails << mail_message 
-        else
-          result << EbayMail.parse_mail(mail_message)
-        end
-        cnt += 1
-      end
-      return mails if return_unparsed
-      Item.set_dates_from_known_date
-      return result
+      fetch_unparsed_from_server(maxcnt, return_unparsed)
     else
-      cnt = 0
-      emails_in_label(LABEL_UNPARSED).each do |mail|
-        parse_mail(mail)
-        cnt += 1
-        return if cnt > 150
-      end
+      fetch_unparsed_from_server(maxcnt, return_unparsed)
     end
   end
 
