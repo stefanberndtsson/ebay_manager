@@ -12,37 +12,48 @@ class EbayMail < ActiveRecord::Base
   end
 
   def self.parse_mail(mail)
-    data = EbayMailData.new
-    PaypalParser.parse(mail, data)
-    OrderParser.parse(mail, data)
-    ShippedParser.parse(mail, data)
+    begin
+      data = EbayMailData.new
+      PaypalParser.parse(mail, data)
+      OrderParser.parse(mail, data)
+      ShippedParser.parse(mail, data)
+      
+      if data.status == :parsed && data.items.blank?
+        data.status = :unparsable
+      end
 
-    if data.status == :parsed && data.items.blank?
-      data.status = :unparsable
+      if data.status == :parsed && data.items.keys.include?(nil)
+        pp data
+        pp mail.subject
+        raise EbayIDMissing
+      end
+
+      if data.status != :parsed && DiscardParser.parse(mail, data)
+        data.status = :discarded
+      end
+
+      if data.status != :parsed && data.status != :discarded
+        pp mail.message_id
+        pp mail.subject
+        pp data
+        File.open("/tmp/error.log", "a") do |file| 
+          file.puts [mail.message_id, mail.subject].inspect
+        end
+#        raise Unparsable
+        data.status = :unparsable
+      end
+    rescue
+      mail.parts.each.with_index do |part,i| 
+        ext = "txt"
+        ext = "html" if part.content_type[/html/]
+        File.open("/tmp/debug-error-#{i}.#{ext}", "wb") { |f| f.write(part.body) }
+      end
+      raise
     end
-
-    if data.status == :parsed && data.items.keys.include?(nil)
-      pp data
-      pp mail.subject
-      raise EbayIDMissing
-    end
-
-    if data.status != :parsed && DiscardParser.parse(mail, data)
-      data.status = :discarded
-    end
-
-    if data.status != :parsed && data.status != :discarded
-      pp mail.subject
-      pp data
-      raise Unparsable
-      data.status = :unparsable
-    end
-
     if data.status == :parsed
       add_delivery_dates(mail, data)
       create_or_update_item(mail, data) 
     end
-
     data.status
   end
 

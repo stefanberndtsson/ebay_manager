@@ -93,6 +93,7 @@ class Imap
       cnt += 1
       return if maxcnt && cnt > maxcnt
     end
+    Item.set_dates_from_known_date
   end
 
   def self.fetch_unparsed_mails(maxcnt = nil, return_unparsed = false)
