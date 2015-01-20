@@ -43,6 +43,7 @@ class DiscardParser
     return true if mail.subject[/^eBay Change Password Confirmation/]
     return true if mail.subject[/^eBay User Information Request/]
     return true if mail.subject[/^Din avslutade kontostatus/] 
+    return true if mail.subject[/^Du har skickat en betalning/] 
     return true if mail.subject[/^You.ve added a card to your PayPal account/] 
     return true if mail.subject[/^Shipment Tracking and Order Status provided for Transaction ID/]
     
