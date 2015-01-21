@@ -17,31 +17,6 @@ class EbayMail < ActiveRecord::Base
       PaypalParser.parse(mail, data)
       OrderParser.parse(mail, data)
       ShippedParser.parse(mail, data)
-      
-      if data.status == :parsed && data.items.blank?
-        data.status = :unparsable
-      end
-
-      if data.status == :parsed && data.items.keys.include?(nil)
-        pp data
-        pp mail.subject
-        raise EbayIDMissing
-      end
-
-      if data.status != :parsed && DiscardParser.parse(mail, data)
-        data.status = :discarded
-      end
-
-      if data.status != :parsed && data.status != :discarded
-        pp mail.message_id
-        pp mail.subject
-        pp data
-        File.open("/tmp/error.log", "a") do |file| 
-          file.puts [mail.message_id, mail.subject].inspect
-        end
-#        raise Unparsable
-        data.status = :unparsable
-      end
     rescue
       mail.parts.each.with_index do |part,i| 
         ext = "txt"
@@ -49,6 +24,31 @@ class EbayMail < ActiveRecord::Base
         File.open("/tmp/debug-error-#{i}.#{ext}", "wb") { |f| f.write(part.body) }
       end
       raise
+    end
+    
+    if data.status == :parsed && data.items.blank?
+      data.status = :unparsable
+    end
+
+    if data.status == :parsed && data.items.keys.include?(nil)
+      pp data
+      pp mail.subject
+      raise EbayIDMissing
+    end
+
+    if data.status != :parsed && DiscardParser.parse(mail, data)
+      data.status = :discarded
+    end
+
+    if data.status != :parsed && data.status != :discarded
+      pp mail.message_id
+      pp mail.subject
+      pp data
+      File.open("/tmp/error.log", "a") do |file| 
+        file.puts [mail.message_id, mail.subject].inspect
+      end
+      #        raise Unparsable
+      data.status = :unparsable
     end
     if data.status == :parsed
       add_delivery_dates(mail, data)
