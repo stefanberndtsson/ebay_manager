@@ -70,6 +70,14 @@ class Imap
     in_label(label).imap_search_msgid(msgid).first
   end
 
+  def self.message_by_msgid(msgid, label = LABEL_UNPARSED)
+    if Rails.env == 'production'
+      return gmail_message_by_msgid(msgid, label)
+    else
+      return imap_message_by_msgid(msgid, label)
+    end
+  end
+
   def self.labels
     connection.labels
   end
