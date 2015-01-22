@@ -7,7 +7,26 @@ class Gmail
     @imap.disconnect
     @imap = Net::IMAP.new('localhost', 143)
   end
+
+  class Mailbox
+    def imap_search_msgid(msgid)
+      @gmail.in_mailbox(self) do
+        @gmail.imap.uid_search("HEADER Message-ID #{msgid}").map do |uid|
+          messages[uid] ||= Message.new(@gmail, self, uid)
+        end
+      end
+    end
+  end
 end
+
+#class Net::IMAP
+#  alias_method :old_uid_search, :uid_search
+#
+#  def uid_search(*args)
+#    pp ["DEBUG", args]
+#    old_uid_search(*args)
+#  end
+#end
 
 class Mail::Message
   def move_to(label)
@@ -45,6 +64,10 @@ class Imap
   
   def self.gmail_message_by_msgid(msgid, label = LABEL_UNPARSED)
     in_label(label).emails(:all, {gm: 'rfc822msgid:'+msgid}).first
+  end
+
+  def self.imap_message_by_msgid(msgid, label = LABEL_UNPARSED)
+    in_label(label).imap_search_msgid(msgid).first
   end
 
   def self.labels
