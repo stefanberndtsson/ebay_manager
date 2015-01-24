@@ -88,6 +88,7 @@ class EbayMail < ActiveRecord::Base
         item.update_attributes(items[item_id])
       end
       ebay_mail = create_ebay_mail(mail)
+      mail.set_label("Z/#{item_id}")
       ebay_mail_link = item.item_mails.where(ebay_mail_id: ebay_mail.id)
       if ebay_mail_link.blank?
         item.item_mails.create(ebay_mail_id: ebay_mail.id)
