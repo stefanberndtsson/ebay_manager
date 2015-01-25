@@ -3,14 +3,6 @@ class EbayMail < ActiveRecord::Base
   has_many :item_mails
   has_many :items, :through => :item_mails
 
-  def add_label(label)
-    # TODO: Add label for current message_id
-  end
-
-  def remove_label(label)
-    # TODO: Remove label for current message_id
-  end
-
   def self.parse_mail(mail)
     begin
       data = EbayMailData.new
