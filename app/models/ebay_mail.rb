@@ -52,7 +52,15 @@ class EbayMail < ActiveRecord::Base
     end
     if data.status == :parsed
       add_delivery_dates(mail, data)
-      create_or_update_item(mail, data) 
+      create_or_update_item(mail, data)
+      mail.set_label("EbayManager/Parsed")
+      mail.remove_label("EbayManager/Unparsed")
+    elsif data.status == :discarded
+      mail.set_label("EbayManager/Discarded")
+      mail.remove_label("EbayManager/Unparsed")
+    else
+      mail.set_label("EbayManager/Unknown")
+      mail.remove_label("EbayManager/Unparsed")
     end
     data.status
   end
@@ -88,7 +96,6 @@ class EbayMail < ActiveRecord::Base
         item.update_attributes(items[item_id])
       end
       ebay_mail = create_ebay_mail(mail)
-      mail.set_label("Z/#{item_id}")
       ebay_mail_link = item.item_mails.where(ebay_mail_id: ebay_mail.id)
       if ebay_mail_link.blank?
         item.item_mails.create(ebay_mail_id: ebay_mail.id)
