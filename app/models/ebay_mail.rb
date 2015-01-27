@@ -23,9 +23,9 @@ class EbayMail < ActiveRecord::Base
     end
 
     if data.status == :parsed && data.items.keys.include?(nil)
-      pp data
-      pp mail.subject
-      raise EbayIDMissing
+      mail.set_label("EbayManager/Error")
+      mail.remove_label("EbayManager/Unparsed")
+      return data.status
     end
 
     if data.status != :parsed && DiscardParser.parse(mail, data)
@@ -33,13 +33,6 @@ class EbayMail < ActiveRecord::Base
     end
 
     if data.status != :parsed && data.status != :discarded
-      pp mail.message_id
-      pp mail.subject
-      pp data
-      File.open("/tmp/error.log", "a") do |file| 
-        file.puts [mail.message_id, mail.subject].inspect
-      end
-      #        raise Unparsable
       data.status = :unparsable
     end
     if data.status == :parsed
