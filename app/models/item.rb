@@ -19,10 +19,6 @@ class Item < ActiveRecord::Base
     end
   end
 
-  def delivered_label_name(timestamp)
-    timestamp.strftime("Z/Delivered/%Y-%m-%d")
-  end
-
   def mark_as_delivered
     timestamp = Time.now
     update_attribute(:delivered_at, timestamp)
