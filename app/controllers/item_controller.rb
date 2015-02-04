@@ -6,4 +6,9 @@ class ItemController < ApplicationController
     @items = @items.where(delivered_at: nil) if params[:undelivered] == "true"
     respond_with(@items)
   end
+
+  def show
+    @item = Item.find(params[:id])
+    respond_with(@item)
+  end
 end
