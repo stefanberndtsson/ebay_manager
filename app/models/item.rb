@@ -2,6 +2,18 @@ class Item < ActiveRecord::Base
   has_many :item_mails
   has_many :ebay_mails, :through => :item_mails
 
+  def state
+    if ordered_at && !shipped_at
+      return "Ordered"
+    elsif shipped_at && !delivered_at
+      return "Shipped"
+    elsif delivered_at
+      return "Delivered"
+    else
+      return "Unknown"
+    end
+  end
+
   def self.set_dates_from_known_date
     Item.where("payment_at IS NOT NULL").where(ordered_at: nil).each do |item| 
       item.update_attribute(:ordered_at, item.payment_at)
