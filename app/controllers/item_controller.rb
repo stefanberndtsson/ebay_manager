@@ -15,7 +15,8 @@ class ItemController < ApplicationController
   def update
     @item = Item.find(params[:id])
     if @params[:mark_as_delivered]
-      @item.mark_as_delivered
+      delivery_date = params[:delivered_at]
+      @item.mark_as_delivered(delivery_date)
     end
   end
 end
