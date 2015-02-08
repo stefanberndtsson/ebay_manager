@@ -11,4 +11,11 @@ class ItemController < ApplicationController
     @item = Item.find(params[:id])
     respond_with(@item)
   end
+
+  def update
+    @item = Item.find(params[:id])
+    if @params[:mark_as_delivered]
+      @item.mark_as_delivered
+    end
+  end
 end

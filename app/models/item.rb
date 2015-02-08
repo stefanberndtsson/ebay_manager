@@ -31,8 +31,7 @@ class Item < ActiveRecord::Base
     end
   end
 
-  def mark_as_delivered
-    timestamp = Time.now
+  def mark_as_delivered(timestamp = Time.now)
     update_attribute(:delivered_at, timestamp)
   end
 end
