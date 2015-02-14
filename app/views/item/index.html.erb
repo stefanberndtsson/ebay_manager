@@ -1,5 +1,10 @@
 <ul>
   <% @items.each do |item| %>
-  <li><%= item.title %> (<%= item.state %>)</li>
+  <li>
+    <%= item.title %> (<%= item.state %>)
+    <% if !item.is_delivered? %>
+    <button>Mark as delivered</button>
+    <% end %>
+  </li>
   <% end %>
 </ul>

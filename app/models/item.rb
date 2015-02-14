@@ -14,6 +14,10 @@ class Item < ActiveRecord::Base
     end
   end
 
+  def is_delivered?
+    !!delivered_at
+  end
+
   def self.set_dates_from_known_date
     Item.where("payment_at IS NOT NULL").where(ordered_at: nil).each do |item| 
       item.update_attribute(:ordered_at, item.payment_at)
