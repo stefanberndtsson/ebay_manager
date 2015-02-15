@@ -3,15 +3,24 @@ class Item < ActiveRecord::Base
   has_many :ebay_mails, :through => :item_mails
 
   def state
-    if ordered_at && !shipped_at
+    if is_ordered? && !is_shipped?
       return "Ordered"
-    elsif shipped_at && !delivered_at
+    elsif is_shipped? && !is_delivered?
       return "Shipped"
-    elsif delivered_at
+    elsif is_delivered?
       return "Delivered"
     else
       return "Unknown"
     end
+  end
+
+  # Technically this should always be true
+  def is_ordered?
+    !!ordered_at
+  end
+
+  def is_shipped?
+    !!shipped_at
   end
 
   def is_delivered?
